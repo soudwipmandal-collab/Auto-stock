@@ -1,0 +1,83 @@
+name: Import ZIP from Google Drive
+
+on:
+  workflow_dispatch:
+    inputs:
+      drive_file_id:
+        description: 'Google Drive file id (from /d/FILE_ID/)'
+        required: true
+      branch_name:
+        required: false
+        default: 'upload-from-drive'
+      commit_message:
+        required: false
+        default: 'Add project files from Drive ZIP'
+      pr_title:
+        required: false
+        default: 'Add project files from Drive ZIP'
+      pr_body:
+        required: false
+        default: 'Imported files from Google Drive ZIP.'
+      overwrite:
+        required: false
+        default: 'true'
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --quiet gdown
+
+      - name: Download and extract ZIP from Google Drive
+        run: |
+          FILE_ID="${{ github.event.inputs.drive_file_id }}"
+          gdown --id "$FILE_ID" -O upload.zip
+          unzip -o upload.zip -d upload
+
+      - name: Create branch and copy files
+        run: |
+          BR="${{ github.event.inputs.branch_name }}"
+          if [ -z "$BR" ]; then BR="upload-from-drive"; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BR"
+          if [ "${{ github.event.inputs.overwrite }}" = "true" ]; then
+            rsync -av --exclude='.git' upload/ .
+          else
+            rsync -av --ignore-existing --exclude='.git' upload/ .
+          fi
+
+      - name: Commit and push changes
+        run: |
+          git add -A
+          git commit -m "${{ github.event.inputs.commit_message }}" || echo "No changes to commit"
+          git push --set-upstream origin HEAD
+
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.inputs.pr_title }}
+          PR_BODY: ${{ github.event.inputs.pr_body }}
+        run: |
+          python - <<PY
+import os, json, urllib.request, subprocess
+repo = os.environ['GITHUB_REPOSITORY']
+token = os.environ['GITHUB_TOKEN']
+req = urllib.request.Request(f"https://api.github.com/repos/{repo}", headers={"Authorization":f"token {token}"})
+info = json.load(urllib.request.urlopen(req))
+def_branch = info.get('default_branch')
+BR = subprocess.check_output(["git","rev-parse","--abbrev-ref","HEAD"]).decode().strip()
+payload = {"title": os.environ.get('PR_TITLE','Add files from Drive ZIP'), "head": BR, "base": def_branch, "body": os.environ.get('PR_BODY','Imported from Drive ZIP')}
+req = urllib.request.Request(f"https://api.github.com/repos/{repo}/pulls", data=json.dumps(payload).encode(), headers={"Authorization":f"token {token}", "Content-Type":"application/json"})
+resp = urllib.request.urlopen(req).read().decode()
+print(resp)
+PY
