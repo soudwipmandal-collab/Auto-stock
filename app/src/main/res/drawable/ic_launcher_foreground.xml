@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer Gear Silhouette / Ring -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,26 C55.5,26 56.8,27.1 57,28.6 L57.5,32 C59.8,32.7 61.9,33.8 63.8,35.2 L66.9,33.7 C68.3,33 70,33.5 70.8,34.9 L74.8,41.8 C75.6,43.2 75.2,44.9 74,45.8 L71.2,47.9 C71.4,49.2 71.5,50.6 71.5,52 C71.5,53.4 71.4,54.8 71.2,56.1 L74,58.2 C75.2,59.1 75.6,60.8 74.8,62.2 L70.8,69.1 C70,70.5 68.3,71 66.9,70.3 L63.8,68.8 C61.9,70.2 59.8,71.3 57.5,72 L57,75.4 C56.8,76.9 55.5,78 54,78 L46,78 C44.5,78 43.2,76.9 43,75.4 L42.5,72 C40.2,71.3 38.1,70.2 36.2,68.8 L33.1,70.3 C31.7,71 30,70.5 29.2,69.1 L25.2,62.2 C24.4,60.8 24.8,59.1 26,58.2 L28.8,56.1 C28.6,54.8 28.5,53.4 28.5,52 C28.5,50.6 28.6,49.2 28.8,47.9 L26,45.8 C24.8,44.9 24.4,43.2 25.2,41.8 L29.2,34.9 C30,33.5 31.7,33 33.1,33.7 L36.2,35.2 C38.1,33.8 40.2,32.7 42.5,32 L43,28.6 C43.2,27.1 44.5,26 46,26 Z" />
+
+    <!-- Center Dark Hub -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M50,38 C57.7,38 64,44.3 64,52 C64,59.7 57.7,66 50,66 C42.3,66 36,59.7 36,52 C36,44.3 42.3,38 50,38 Z" />
+
+    <!-- Barcode Bars inside gear -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,44 L44,44 L44,60 L42,60 Z M46,44 L47.5,44 L47.5,60 L46,60 Z M49,44 L51,44 L51,60 L49,60 Z M53,44 L54,44 L54,60 L53,60 Z M56,44 L58,44 L58,60 L56,60 Z" />
+
+    <!-- Cyan Laser Scan Line across center -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M32,51 L68,51 L68,53 L32,53 Z" />
+
+    <!-- Modern Corner Scanner Reticle Targets -->
+    <path
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:pathData="M24,34 L24,24 L34,24 M76,24 L86,24 L86,34 M86,70 L86,80 L76,80 M34,80 L24,80 L24,70" />
+
+    <!-- Vehicle Piston / Spark / Indicator Dots -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M50,21 C51.1,21 52,21.9 52,23 C52,24.1 51.1,25 50,25 C48.9,25 48,24.1 48,23 C48,21.9 48.9,21 50,21 Z M50,79 C51.1,79 52,79.9 52,81 C52,82.1 51.1,83 50,83 C48.9,83 48,82.1 48,81 C48,79.9 48.9,79 50,79 Z" />
+
+</vector>
