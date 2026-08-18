@@ -1,4 +1,4 @@
-name: Import ZIP from Google Drive (debug)
+namename: Import ZIP from Google Drive (debug)
 
 on:
   workflow_dispatch:
@@ -30,6 +30,7 @@ on:
 jobs:
   import:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository (with credentials)
         uses: actions/checkout@v4
@@ -42,7 +43,7 @@ jobs:
           echo "Runner: $(uname -a)"
           echo "Repo: $GITHUB_REPOSITORY"
           echo "Actor: $GITHUB_ACTOR"
-          python --version
+          python --version || true
           which pip || true
 
       - name: Install dependencies
@@ -56,28 +57,30 @@ jobs:
         run: |
           set -euxo pipefail
           echo "Drive file id: $FILE_ID"
+
           # Attempt gdown first
-          if command -v gdown >/dev/null 2>&1 ; then
-            gdown --id "$FILE_ID" -O upload.zip || echo "gdown failed with exit $?"
+          if command -v gdown >/dev/null 2>&1; then
+            gdown --id "$FILE_ID" -O upload.zip || echo "gdown exited with non-zero status"
           fi
-          # Check if file downloaded
+
+          # Fallback to curl if gdown didn't produce a usable file
           if [ ! -f upload.zip ] || [ ! -s upload.zip ]; then
-            echo "gdown didn't produce upload.zip or file is empty; trying wget fallback"
-            # Simple wget/curl fallback (may fail with large files that require confirm token)
+            echo "gdown did not create upload.zip or it is empty; trying curl fallback"
             curl -L "https://drive.google.com/uc?export=download&id=${FILE_ID}" -o upload.zip || true
           fi
-          # Inspect download
-          if [ -f upload.zip ]; then
-            echo "Downloaded upload.zip size:"
+
+          # Verify and extract
+          if [ -f upload.zip ] && [ -s upload.zip ]; then
+            echo "Downloaded upload.zip:"
             ls -lh upload.zip
-            echo "Test archive integrity (if possible):"
+            echo "Testing archive (may print warnings if not a zip):"
             unzip -t upload.zip || echo "zip test failed (may still unzip)"
             unzip -o upload.zip -d upload || { echo "unzip failed"; ls -la; exit 1; }
-            echo "Extracted files:"
-            ls -la upload | head -n 200 || true
+            echo "Extracted files (first 200 lines):"
+            ls -la upload | sed -n '1,200p' || true
           else
-            echo "ERROR: upload.zip not found after download attempts."
-            echo "Make sure file id is correct AND the Drive file is set to 'Anyone with the link' (Viewer)."
+            echo "ERROR: upload.zip not found or empty after download attempts."
+            echo "Make sure the Drive file id is correct AND the Drive file is set to 'Anyone with the link' (Viewer)."
             exit 1
           fi
 
@@ -94,7 +97,7 @@ jobs:
       - name: Copy files into repo (show what will change)
         run: |
           set -euxo pipefail
-          echo "Files inside upload/ (first 200 lines):"
+          echo "Files inside upload/ (first 200 files):"
           find upload -maxdepth 3 -type f -print | sed -n '1,200p' || true
           if [ "${{ github.event.inputs.overwrite }}" = "true" ]; then
             rsync -av --exclude='.git' upload/ .
@@ -102,7 +105,7 @@ jobs:
             rsync -av --ignore-existing --exclude='.git' upload/ .
           fi
           echo "Files changed (git status):"
-          git status --porcelain
+          git status --porcelain || true
 
       - name: Commit and push changes (show output)
         env:
@@ -111,7 +114,7 @@ jobs:
           set -euxo pipefail
           git add -A
           git commit -m "${{ github.event.inputs.commit_message }}" || echo "No changes to commit"
-          # Ensure remote uses token (persist-credentials should work but set explicitly for clarity)
+          # Use token for pushing to avoid authentication issues
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           git push --set-upstream origin HEAD -v
 
@@ -122,16 +125,32 @@ jobs:
           PR_BODY: ${{ github.event.inputs.pr_body }}
         run: |
           set -euxo pipefail
-          python - <<PY
-import os,json,urllib.request,subprocess
+          python - <<'PY'
+import os, json, urllib.request, subprocess
 repo = os.environ['GITHUB_REPOSITORY']
 token = os.environ['GITHUB_TOKEN']
+
+# get default branch name
 req = urllib.request.Request(f"https://api.github.com/repos/{repo}", headers={"Authorization":f"token {token}"})
 info = json.load(urllib.request.urlopen(req))
 def_branch = info.get('default_branch')
+
+# current branch
 BR = subprocess.check_output(["git","rev-parse","--abbrev-ref","HEAD"]).decode().strip()
-payload = {"title": os.environ.get('PR_TITLE','Add files from Drive ZIP'), "head": BR, "base": def_branch, "body": os.environ.get('PR_BODY','Imported from Drive ZIP')}
-req = urllib.request.Request(f"https://api.github.com/repos/{repo}/pulls", data=json.dumps(payload).encode(), headers={"Authorization":f"token {token}", "Content-Type":"application/json"})
+
+payload = {
+  "title": os.environ.get('PR_TITLE', 'Add files from Drive ZIP'),
+  "head": BR,
+  "base": def_branch,
+  "body": os.environ.get('PR_BODY', 'Imported from Drive ZIP')
+}
+
+req = urllib.request.Request(
+  f"https://api.github.com/repos/{repo}/pulls",
+  data=json.dumps(payload).encode(),
+  headers={"Authorization":f"token {token}", "Content-Type":"application/json"}
+)
+
 resp = urllib.request.urlopen(req).read().decode()
 print(resp)
 PY
