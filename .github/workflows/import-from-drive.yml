@@ -1,4 +1,4 @@
-namename: Import ZIP from Google Drive (debug)
+name: Import ZIP from Google Drive (debug)
 
 on:
   workflow_dispatch:
@@ -58,14 +58,14 @@ jobs:
           set -euxo pipefail
           echo "Drive file id: $FILE_ID"
 
-          # Attempt gdown first
+          # Try gdown first
           if command -v gdown >/dev/null 2>&1; then
             gdown --id "$FILE_ID" -O upload.zip || echo "gdown exited with non-zero status"
           fi
 
           # Fallback to curl if gdown didn't produce a usable file
           if [ ! -f upload.zip ] || [ ! -s upload.zip ]; then
-            echo "gdown did not create upload.zip or it is empty; trying curl fallback"
+            echo "gdown didn't produce upload.zip or it is empty; trying curl fallback"
             curl -L "https://drive.google.com/uc?export=download&id=${FILE_ID}" -o upload.zip || true
           fi
 
@@ -114,7 +114,6 @@ jobs:
           set -euxo pipefail
           git add -A
           git commit -m "${{ github.event.inputs.commit_message }}" || echo "No changes to commit"
-          # Use token for pushing to avoid authentication issues
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           git push --set-upstream origin HEAD -v
 
@@ -127,6 +126,7 @@ jobs:
           set -euxo pipefail
           python - <<'PY'
 import os, json, urllib.request, subprocess
+
 repo = os.environ['GITHUB_REPOSITORY']
 token = os.environ['GITHUB_TOKEN']
 
